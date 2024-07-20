@@ -1,0 +1,11 @@
+#+TITLE: Teletekst Bot Source Code
+
+* =walk_pages.py=
+- Check the three index pages (101, 102, 103) and determine which pages are referenced from there.
+- Separately, use the =next_page= links from the JSON data to walk the pages 104..199.
+- Also fetch information for any of the pages referenced on the index pages outside of 104..199, which happens from time to time for sport related news.
+- Save that data to disk and, if asked to, compare with the most recent set, then discard if nothing changed.
+* =compare_pages.py=
+- For each of the pages in the old set, look for a match in the new set, with a (very simple, at this time) heuristic that compares the sets of words on the old and new pages to allow for the possibility that sentences were tweaked or rearranged.
+- Anything that is left afterward, is assumed to be a new page.
+- For the matching pages, check if they're completely identical or that some aspect changed. The page number, the title, or the content. Do whatever needs to be done depending on that.
