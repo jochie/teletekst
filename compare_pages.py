@@ -159,16 +159,16 @@ def render_teletekst(fname, content):
     # lives, and possibly be wrong there anyway
 
     # Wrap it in the minimally needed HTML
-    content = '''
+    content = f'''
 <html>
   <head>
-    <style>body { background: #202020; }</style>
+    <style>body {{ background: #202020; }}</style>
   </head>
   <body>
     <link href="https://cdn.nos.nl/assets/nos-symfony/ceb1651/bundles/nossite/css/teletekst.css" media="all" type="text/css" rel="stylesheet"/>
-    <pre class="teletekst__content__pre">%s</pre>
+    <pre class="teletekst__content__pre">{content}</pre>
   </body>
-</html>''' % (content,)
+</html>'''
     imgkit.from_string(
         content,
         fname,
@@ -198,7 +198,7 @@ def generate_diff_attachment(opts, http, auth, text, timestamp):
     """
     img = Image.new('RGB', (385, 440  * 2), "#202020")
     fnt = ImageFont.truetype('DejaVuSansMono', FNT_SIZE)
-    d = ImageDraw.Draw(img)
+    drawing = ImageDraw.Draw(img)
 
     offset = 0
     for line in text.splitlines():
@@ -228,13 +228,13 @@ def generate_diff_attachment(opts, http, auth, text, timestamp):
             color="cyan"
         if len(line) == 0:
             line = " "
-        d.text((0, offset), line, fill=color, font=fnt)
+        drawing.text((0, offset), line, fill=color, font=fnt)
         if Version(PIL.__version__) >= Version("10.0.0"):
             # left, top, right, bottom
-            (_, _, _, bottom) = d.textbbox((5, offset), line, font=fnt)
+            (_, _, _, bottom) = drawing.textbbox((5, offset), line, font=fnt)
             offset = bottom + 1
         else:
-            # width, height = d.textsize(line, fnt)
+            # width, height = drawing.textsize(line, fnt)
             # print(f"Width x Height = {width} x {height}")
             offset += FNT_SIZE + 3
     if opts.debug:
@@ -243,13 +243,13 @@ def generate_diff_attachment(opts, http, auth, text, timestamp):
         img = img.crop((0, 0, 385, offset))
     else:
         img = img.crop((0, 0, 385, 440))
-    s = io.BytesIO()
-    img.save(s, 'png')
-    img_data = s.getvalue()
+    img_stream = io.BytesIO()
+    img.save(img_stream, 'png')
+    img_data = img_stream.getvalue()
     result = http.request("POST", f"https://{opts.server}/api/v2/media",
                           headers=auth,
                           fields={
-                              "file": ("tt/diff.png", img_data),
+                              "file": ("diff.png", img_data),
                               "description": f"[{timestamp}]\n\n{text}",
                               "focus": "0.0,1.0"
                           })
@@ -272,8 +272,8 @@ def generate_attachment(opts, http, auth,
     render_teletekst(file_name, raw_content)
 
     # Prepare the attachment:
-    with open(file_name, "rb") as fp:
-        file_data = fp.read()
+    with open(file_name, "rb") as page_fd:
+        file_data = page_fd.read()
     result = http.request("POST", f"https://{opts.server}/api/v2/media",
                           headers=auth,
                           fields={
