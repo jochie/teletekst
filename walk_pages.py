@@ -50,7 +50,10 @@ class TextParser(HTMLParser):
         self.text_collected += data
 
     def error(self, message):
-        print(f"Parsing error: {message}")
+        """
+        Implement abstract error() function
+        """
+        print(f"[{self}] Parsing error: {message}")
 
 
 def parse_headlines(text):
@@ -100,8 +103,8 @@ def fetch_page(page, http, stamp, is_index):
 
     try:
         page_json = json.loads(result.data)
-    except ValueError as e:
-        print(f"Error parsing JSON: {e}")
+    except ValueError as err:
+        print(f"Error parsing JSON: {err}")
         print(result.data)
         sys.exit(1)
 

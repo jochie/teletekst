@@ -1,0 +1,24 @@
+name: Link Checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Fetch files
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get -q install pylint python3-packaging python3-pil
+          pip3 install imgkit
+
+      - name: Run Pylint
+        run: make lint
