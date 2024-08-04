@@ -150,8 +150,11 @@ def fetch_all_pages():
         for _, page in page_data:
             pages[page] = str(idx)
 
-    # Now find what's actually there
-    current = 104
+    # Now find what's actually there, and we cannot assume that the
+    # next page is 104, so we check what page 103 tells us
+    page_data, page_meta = fetch_page(103, http, stamp, False)
+    current = int(page_meta[1])
+
     while True:
         page_data, page_meta = fetch_page(current, http, stamp, False)
 
