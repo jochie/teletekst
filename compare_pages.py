@@ -286,10 +286,32 @@ def generate_attachment(opts, http, auth,
     return json.loads(result.data)['id']
 
 
+def teletekst_hashtag(pagenr):
+    if pagenr < 200:
+        return "Nieuws"
+    if pagenr < 250:
+        return "Televisie"
+    if pagenr < 500:
+        return "Radio"
+    if pagenr < 600:
+        return "Financieel"
+    if pagenr < 700:
+        return "Sport"
+    if pagenr < 800:
+        return "WeerVerkeer"
+    if pagenr < 888:
+        return "Voetbal"
+    return None
+
 def create_post(opts, http, auth, title, pagenr, raw_content, text_content, timestamp):
     """
     Create a post for a new Teletekst page
     """
+    hashtag = teletekst_hashtag(pagenr)
+    if hashtag:
+        hashtag_txt = f" #Teletekst{hashtag}"
+    else:
+        hashtag_txt = ""
     media_id = generate_attachment(opts, http, auth,
                                    pagenr, raw_content, text_content,
                                    timestamp)
@@ -298,7 +320,7 @@ def create_post(opts, http, auth, title, pagenr, raw_content, text_content, time
         f"https://{opts.server}/api/v1/statuses",
         headers=auth,
         fields={
-            'status':      f"[{pagenr}] {title}\nhttps://nos.nl/teletekst/{pagenr} #teletekst",
+            'status':      f"[{pagenr}] {title}\nhttps://nos.nl/teletekst/{pagenr} #Teletekst{hashtag_txt}",
             'media_ids[]': media_id,
             'language':    'nl'
         })
@@ -338,12 +360,24 @@ def create_update(opts, http, auth, post_id, old_pagenr, old_pagedata, # pylint:
     follow-up post to the original post, with a new version attached
     as well as the "diff" between the two version.
     """
+    hashtag = teletekst_hashtag(new_pagenr)
+    if hashtag:
+        hashtag_txt = f" #Teletekst{hashtag}"
+    else:
+        hashtag_txt = ""
     if old_pagedata['text'] == new_pagedata['text']:
         media_ids = get_media_data(opts, http, auth, post_id)
-        fields = [
-            ('status', f"[{new_pagenr}] {new_pagedata['title']}\nhttps://nos.nl/teletekst/{new_pagenr} #teletekst"),
-            ('language', 'nl')
-        ]
+        if len(media_ids) == 1:
+            fields = [
+                ('status', f"[{new_pagenr}] {new_pagedata['title']}\nhttps://nos.nl/teletekst/{new_pagenr} #Teletekst{hashtag_txt}"),
+                ('language', 'nl')
+            ]
+        else:
+            # Don't lose that TeletekstUpdate tag in the process
+            fields = [
+                ('status', f"[{new_pagenr}] {new_pagedata['title']}\nhttps://nos.nl/teletekst/{new_pagenr} #Teletekst{hashtag_txt} #TeletekstUpdate"),
+                ('language', 'nl')
+            ]
         for media_id in media_ids:
             fields.append(('media_ids[]', media_id))
 
@@ -361,7 +395,7 @@ def create_update(opts, http, auth, post_id, old_pagenr, old_pagedata, # pylint:
                                               generate_diff(opts, old_pagedata['text'], new_pagedata['text']),
                                               timestamp))
     fields = [
-        ('status', f"[{new_pagenr}] {new_pagedata['title']}\nhttps://nos.nl/teletekst/{new_pagenr} #teletekst"),
+        ('status', f"[{new_pagenr}] {new_pagedata['title']}\nhttps://nos.nl/teletekst/{new_pagenr} #Teletekst{hashtag_txt} #TeletekstUpdate"),
         ('language', 'nl'),
         ('in_reply_to_id', post_id)
     ]
@@ -375,13 +409,19 @@ def create_update(opts, http, auth, post_id, old_pagenr, old_pagedata, # pylint:
     return post_id, result.status
 
 
-def mark_deleted(opts, http, auth, post_id, title):
+def mark_deleted(opts, http, auth, post_id, pagenr, title):
     """
     Update a post to reflect the fact that a Teletekst page is no longer there
     """
+    hashtag = teletekst_hashtag(pagenr)
+    if hashtag:
+        hashtag_txt = f" #Teletekst{hashtag}"
+    else:
+        hashtag_txt = ""
+
     media_ids = get_media_data(opts, http, auth, post_id)
     fields = [
-        ('status',   f"[Verwijderd] {title}\n#teletekst"),
+        ('status',   f"[Verwijderd] {title}\n#Teletekst{hashtag_txt}"),
         ('language', 'nl')
     ]
     for media_id in media_ids:
@@ -621,7 +661,7 @@ def main():
             if opts.dryrun:
                 result_status = "<unknown>"
             else:
-                result_status = mark_deleted(opts, http, auth, post_id, pagedata['title'])
+                result_status = mark_deleted(opts, http, auth, post_id, pagenr, pagedata['title'])
                 clear_state(state, pagedata['title'], pagenr)
 
             pages_del.append(f"#{pagenr} '{pagedata['title']}' - Post ID {post_id} ({result_status})")
